@@ -1,5 +1,7 @@
-#include <iostream>
+#include "tightrope/pch.hpp"
 
 int main() {
-    std::cout << "tightrope baby!" << std::endl;
+    spdlog::info("tightrope!");
+
+    return 0;
 }
