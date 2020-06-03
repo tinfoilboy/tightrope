@@ -7,7 +7,7 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory (extern/spdlog)
 
-add_executable (tightrope source/pch.cpp source/main.cpp)
+add_executable (tightrope source/pch.cpp source/tightrope.cpp source/window.cpp source/main.cpp)
 
 target_include_directories (tightrope PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/extern/spdlog/include)
 

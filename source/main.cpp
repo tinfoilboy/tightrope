@@ -1,7 +1,11 @@
 #include "tightrope/pch.hpp"
 
+#include "tightrope/tightrope.hpp"
+
 int main() {
-    spdlog::info("tightrope!");
+    Tightrope tightrope;
+
+    tightrope.Run();
 
     return 0;
 }
