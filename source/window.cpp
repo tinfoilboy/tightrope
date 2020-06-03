@@ -13,7 +13,6 @@ void Window::Create(uint32_t width, uint32_t height)
     m_width  = width;
     m_height = height;
 
-#ifdef _WIN32
     WNDCLASS windowClass = {};
 
     windowClass.lpfnWndProc   = WindowProc;
@@ -58,7 +57,9 @@ void Window::Create(uint32_t width, uint32_t height)
 
     ShowWindow(m_handle, SW_SHOW);
     UpdateWindow(m_handle);
-#endif
+
+    // create the graphics device for drawing to the window
+    m_graphics.Create(m_handle);
 }
 
 void Window::Update()
@@ -80,7 +81,6 @@ void Window::Update()
     }
 }
 
-#ifdef _WIN32
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     Window* window = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
@@ -107,4 +107,3 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
-#endif

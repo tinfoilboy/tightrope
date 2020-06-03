@@ -1,5 +1,7 @@
 #pragma once
 
+#include "tightrope/graphics.hpp"
+
 class Window {
 
 public:
@@ -9,6 +11,11 @@ public:
     void Create(uint32_t width, uint32_t height);
 
     void Update();
+
+    inline Graphics& GetGraphics()
+    {
+        return m_graphics;
+    }
 
     inline bool IsCloseRequested()
     {
@@ -20,9 +27,9 @@ private:
     uint32_t m_width = 0;
     uint32_t m_height = 0;
 
-#ifdef _WIN32
     HWND m_handle = nullptr;
-#endif
+
+    Graphics m_graphics;
 
     bool m_isCloseRequested = false;
 

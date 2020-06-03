@@ -17,6 +17,9 @@ void Tightrope::Run()
 
     while (!m_window.IsCloseRequested())
     {
+        m_window.GetGraphics().Begin();
+        m_window.GetGraphics().End();
+
         m_window.Update();
     }
 }
