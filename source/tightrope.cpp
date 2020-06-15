@@ -17,8 +17,22 @@ void Tightrope::Run()
 
     while (!m_window.IsCloseRequested())
     {
-        m_window.GetGraphics().Begin();
-        m_window.GetGraphics().End();
+        Graphics& context = m_window.GetGraphics();
+
+        context.Begin();
+        context.TextLine(
+            L"int main(int argc, char* argv[]) {",
+            12.0f,
+            12.0f);
+        context.TextLine(
+            L"    return 0;",
+            12.0f,
+            36.0f);
+        context.TextLine(
+            L"}",
+            12.0f,
+            60.0f);
+        context.End();
 
         m_window.Update();
     }

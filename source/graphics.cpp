@@ -6,6 +6,15 @@ Graphics::~Graphics()
 {
     SafeRelease(&m_d2dFactory);
     SafeRelease(&m_renderTarget);
+
+    SafeRelease(&m_directWriteFactory);
+    SafeRelease(&m_defaultFontFormat);
+    SafeRelease(&m_whiteBrush);
+
+    for (auto& layout : m_layouts)
+    {
+        SafeRelease(&layout.second.layout); // release the layout from memory on the DirectWrite side
+    }
 }
 
 void Graphics::Create(HWND handle)
@@ -20,6 +29,12 @@ void Graphics::Create(HWND handle)
     }
 
     _CreateRenderTarget();
+
+    _CreateDirectWrite();
+
+    m_clearColor = D2D1::ColorF(0.2f, 0.2f, 0.2f, 1.0f);
+
+    _CreateRenderTargetResources();
 }
 
 void Graphics::_CreateRenderTarget()
@@ -30,15 +45,59 @@ void Graphics::_CreateRenderTarget()
 
     D2D1_SIZE_U size = D2D1::SizeU(rect.right - rect.left, rect.bottom - rect.top);
 
+    m_width  = size.width;
+    m_height = size.height;
+
     HRESULT result = m_d2dFactory->CreateHwndRenderTarget(
         D2D1::RenderTargetProperties(),
         D2D1::HwndRenderTargetProperties(m_parentHandle, size),
-        &m_renderTarget
-    );
+        &m_renderTarget);
 
     if (FAILED(result))
     {
         FatalError(FatalErrorCodes::GRAPHICS_INITIALIZATION_ERROR, "Failed to create render target!");
+    }
+}
+
+void Graphics::_CreateDirectWrite()
+{
+    HRESULT result = DWriteCreateFactory(
+        DWRITE_FACTORY_TYPE_SHARED,
+        __uuidof(m_directWriteFactory),
+        reinterpret_cast<IUnknown**>(&m_directWriteFactory));
+
+    if (FAILED(result))
+    {
+        FatalError(FatalErrorCodes::GRAPHICS_INITIALIZATION_ERROR, "Failed to create DirectWrite factory!");
+    }
+
+    result = m_directWriteFactory->CreateTextFormat(
+        L"Consolas",
+        NULL,
+        DWRITE_FONT_WEIGHT_NORMAL,
+        DWRITE_FONT_STYLE_NORMAL,
+        DWRITE_FONT_STRETCH_NORMAL,
+        13,
+        L"",
+        &m_defaultFontFormat);
+
+    if (FAILED(result))
+    {
+        FatalError(FatalErrorCodes::GRAPHICS_INITIALIZATION_ERROR, "Failed to create DirectWrite format!");
+    }
+
+    // align text at the start of the rectangle
+    m_defaultFontFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+    m_defaultFontFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+}
+
+void Graphics::_CreateRenderTargetResources()
+{
+    HRESULT result = m_renderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_whiteBrush);
+
+    if (FAILED(result))
+    {
+        FatalError(FatalErrorCodes::GRAPHICS_DRAW_ERROR, "Failed to create white color brush!");
     }
 }
 
@@ -49,7 +108,59 @@ void Graphics::Begin()
 
     m_renderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
 
-    m_renderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
+    m_renderTarget->Clear(m_clearColor);
+}
+
+void Graphics::TextLine(const std::wstring& text, float x, float y, float width, float height)
+{
+    if (width <= 0.0f)
+    {
+        width = static_cast<float>(m_width);
+    }
+
+    if (height <= 0.0f)
+    {
+        height = static_cast<float>(m_height);
+    }
+
+    auto& find = m_layouts.find(text);
+
+    IDWriteTextLayout* textLayout = nullptr;
+
+    // couldn't find a layout for the text provided, so create one
+    if (find == m_layouts.end())
+    {
+        HRESULT result = m_directWriteFactory->CreateTextLayout(
+            text.c_str(),
+            text.size(),
+            m_defaultFontFormat,
+            width,
+            height,
+            &textLayout);
+
+        if (FAILED(result))
+        {
+            FatalError(FatalErrorCodes::GRAPHICS_DRAW_ERROR, "Failed to create text layout for string!");
+        }
+
+        m_layouts.insert(std::make_pair(text, TextLayoutResource {
+            textLayout, // layout
+            true, // usedInUpdate
+            0 // inactiveUpdates
+        }));
+    }
+    else
+    {
+        textLayout = find->second.layout;
+
+        find->second.usedInUpdate    = true; // used in this current update cycle, so reflect
+        find->second.inactiveUpdates = 0; // reset the inactive counter as it should be zero
+    }
+
+    m_renderTarget->DrawTextLayout(
+        D2D1::Point2F(x, y),
+        textLayout,
+        m_whiteBrush);
 }
 
 void Graphics::End()
@@ -67,5 +178,25 @@ void Graphics::End()
         FatalError(FatalErrorCodes::GRAPHICS_DRAW_ERROR, "Direct2D draw end failed!");
 
         spdlog::error("HRESULT code for failure: {}", result);
+    }
+
+    // iterate through each layout and erase if necessary
+    for (auto& itr = m_layouts.begin(); itr != m_layouts.end();)
+    {
+        if (!itr->second.usedInUpdate)
+        {
+            itr->second.inactiveUpdates++; // this resource wasn't used in an update, so increase the inactive counter
+        }
+
+        if (itr->second.inactiveUpdates >= m_maxKeepUpdates)
+        {
+            SafeRelease(&itr->second.layout); // release the layout from memory on the DirectWrite side
+
+            itr = m_layouts.erase(itr); // erase the current item and set itr to the next item
+        }
+        else
+        {
+            ++itr; // advance the iterator
+        }
     }
 }

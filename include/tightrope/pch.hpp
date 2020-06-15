@@ -18,10 +18,12 @@ inline void SafeRelease(T** toBeReleased)
 #include <dwrite.h>
 
 #pragma comment(lib, "d2d1")
+#pragma comment(lib, "dwrite")
 #endif
 
 #include <spdlog/spdlog.h>
 #include <memory>
+#include <unordered_map>
 
 enum class FatalErrorCodes : int32_t
 {
