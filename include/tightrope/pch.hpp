@@ -24,6 +24,7 @@ inline void SafeRelease(T** toBeReleased)
 #include <spdlog/spdlog.h>
 #include <memory>
 #include <unordered_map>
+#include <functional>
 
 enum class FatalErrorCodes : int32_t
 {

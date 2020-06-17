@@ -14,4 +14,8 @@ private:
 
     Window m_window;
 
+    void _OnKeyDown(const KeyCode& typed);
+
+    void _OnTyped(wchar_t typed);
+
 };

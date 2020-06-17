@@ -103,6 +103,45 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
         PostQuitMessage(0);
         return 0;
     }
+    case WM_KEYDOWN:
+    {
+        KeyCode code;
+
+        switch (wParam)
+        {
+        case VK_RETURN:
+            code = KeyCode::ENTER;
+            break;
+        case VK_LEFT:
+            code = KeyCode::LEFT_ARROW;
+            break;
+        case VK_RIGHT:
+            code = KeyCode::RIGHT_ARROW;
+            break;
+        case VK_UP:
+            code = KeyCode::UP_ARROW;
+            break;
+        case VK_DOWN:
+            code = KeyCode::DOWN_ARROW;
+            break;
+        case VK_ESCAPE:
+            code = KeyCode::ESCAPE;
+            break;
+        default:
+            code = KeyCode::UNKNOWN;
+            break;
+        }
+
+        (window->GetKeyDownCallback())(code);
+
+        break;
+    }
+    case WM_CHAR:
+    {
+        (window->GetTypedCallback())(static_cast<wchar_t>(wParam));
+
+        break;
+    }
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
